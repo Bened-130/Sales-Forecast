@@ -1,8 +1,3 @@
-"""
-Revenue Optimizer Module
-Identify revenue opportunities and optimize inventory
-"""
-
 import pandas as pd
 import numpy as np
 from config import logger, STOCK_BUFFER, SAFETY_STOCK, REORDER_POINT
@@ -18,7 +13,7 @@ class RevenueOptimizer:
         """Identify revenue optimization opportunities"""
         logger.info("Identifying revenue opportunities")
         
-        # Calculate product benchmarks (average revenue per product)
+        # Calculate product benchmarks
         product_benchmark = df.groupby('product')['revenue'].agg([
             ('avg_revenue', 'mean'),
             ('total_revenue', 'sum')
@@ -38,16 +33,13 @@ class RevenueOptimizer:
             suffixes=('', '_benchmark')
         )
         
-        # Calculate gap (potential improvement)
-        # Expected revenue = benchmark avg * transaction count
+        # Calculate gap
         opportunities['expected_revenue'] = opportunities['avg_revenue'] * opportunities['transaction_count']
         opportunities['revenue_gap'] = opportunities['expected_revenue'] - opportunities['actual_revenue']
         opportunities['opportunity_value'] = opportunities['revenue_gap'].clip(lower=0)
         opportunities['improvement_pct'] = (opportunities['opportunity_value'] / opportunities['actual_revenue'] * 100).round(2)
         
-        # Calculate total opportunity
         total_opportunity = opportunities['opportunity_value'].sum()
-        
         logger.info(f"Total revenue opportunity identified: ${total_opportunity:,.2f}")
         
         return opportunities.sort_values('opportunity_value', ascending=False)
@@ -58,7 +50,6 @@ class RevenueOptimizer:
         
         result_df = forecast_df.copy()
         
-        # Calculate optimal stock levels
         result_df['recommended_stock'] = (result_df['yhat'] * STOCK_BUFFER).round(2)
         result_df['safety_stock'] = (result_df['yhat'] * SAFETY_STOCK).round(2)
         result_df['reorder_point'] = (result_df['yhat'] * REORDER_POINT).round(2)
@@ -93,7 +84,7 @@ class RevenueOptimizer:
         
         return product_stats.sort_values('total_revenue', ascending=False)
     
-    def save_opportunities(self, opportunities, filepath):
+    def save_opportunities(self, opportunities, filename):
         """Save opportunities to CSV"""
-        save_dataframe(opportunities, filepath)
-        return filepath
+        save_dataframe(opportunities, filename)
+        return True
