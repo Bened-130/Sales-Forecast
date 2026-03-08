@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from prophet import Prophet
 from config import logger, PROPHET_PARAMS, FORECAST_PERIODS
-from utils import save_plot, save_dataframe, calculate_metrics
+from utils import save_plot, save_dataframe, calculate_metrics, get_output_path
 
 class ProphetForecaster:
     """Time series forecasting using Facebook Prophet"""
@@ -33,7 +33,6 @@ class ProphetForecaster:
             changepoint_prior_scale=PROPHET_PARAMS['changepoint_prior_scale']
         )
         
-        # Add custom seasonalities
         self.model.add_seasonality(
             name='monthly',
             period=30.5,
@@ -59,11 +58,8 @@ class ProphetForecaster:
         """Evaluate model performance"""
         logger.info("Evaluating Prophet model")
         
-        # Predict on test set
         forecast = self.model.predict(test_df[['ds']])
-        
-        # Calculate metrics
-        self.metrics = calculate_metrics(test_df['y'], forecast['yhat'])
+        self.metrics = calculate_metrics(test_df['y'].values, forecast['yhat'].values)
         
         logger.info(f"Model Accuracy: {self.metrics['accuracy']}%")
         return self.metrics
@@ -85,27 +81,13 @@ class ProphetForecaster:
         
         return fig
     
-    def plot_components(self, save_path=None):
-        """Plot forecast components (trend, weekly, yearly)"""
-        if self.forecast is None:
-            logger.error("No forecast available. Run predict() first.")
-            return None
-        
-        fig = self.model.plot_components(self.forecast, figsize=(12, 8))
-        plt.tight_layout()
-        
-        if save_path:
-            save_plot(fig, save_path)
-        
-        return fig
-    
-    def save_forecast(self, filepath):
+    def save_forecast(self, filename):
         """Save forecast to CSV"""
         if self.forecast is not None:
             forecast_df = self.forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].copy()
             forecast_df['ds'] = forecast_df['ds'].dt.strftime('%Y-%m-%d')
-            save_dataframe(forecast_df, filepath)
-            return filepath
+            save_dataframe(forecast_df, filename)
+            return True
         else:
             logger.error("No forecast to save")
-            return None
+            return False
