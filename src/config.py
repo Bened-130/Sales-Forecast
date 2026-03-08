@@ -1,17 +1,16 @@
-"""
-Configuration file for Sales Forecasting Pipeline
-Contains all constants, parameters, and settings
-"""
-
 import logging
-from datetime import datetime
+import os
 
-# Logging Configuration
+# Setup logging first
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Get current directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
 
 # Data Generation Parameters
 DATA_PARAMS = {
@@ -42,30 +41,20 @@ RANDOM_FOREST_PARAMS = {
     'n_jobs': -1
 }
 
-GRADIENT_BOOSTING_PARAMS = {
-    'n_estimators': 100,
-    'max_depth': 5,
-    'learning_rate': 0.1,
-    'random_state': 42
-}
-
 # Forecasting Parameters
-FORECAST_PERIODS = 30  # Days to forecast
-TRAIN_TEST_SPLIT = 0.8  # 80% training, 20% testing
-
-# Feature Engineering
+FORECAST_PERIODS = 30
+TRAIN_TEST_SPLIT = 0.8
 LAG_PERIODS = [1, 7, 14, 30]
 ROLLING_WINDOWS = [7, 14, 30]
 
 # Inventory Optimization
-STOCK_BUFFER = 1.2      # 20% buffer
-SAFETY_STOCK = 0.3      # 30% safety stock
-REORDER_POINT = 0.7     # Reorder at 70%
+STOCK_BUFFER = 1.2
+SAFETY_STOCK = 0.3
+REORDER_POINT = 0.7
 
-# Output Paths
-OUTPUT_DIR = 'output'
-FORECAST_PLOT = f'{OUTPUT_DIR}/sales_forecast.png'
-FORECAST_CSV = f'{OUTPUT_DIR}/forecast_results.csv'
-OPPORTUNITIES_CSV = f'{OUTPUT_DIR}/revenue_opportunities.csv'
-FEATURE_IMPORTANCE_CSV = f'{OUTPUT_DIR}/feature_importance.csv'
-METRICS_JSON = f'{OUTPUT_DIR}/model_metrics.json'
+# Output Files
+FORECAST_PLOT = 'sales_forecast.png'
+FORECAST_CSV = 'forecast_results.csv'
+OPPORTUNITIES_CSV = 'revenue_opportunities.csv'
+FEATURE_IMPORTANCE_CSV = 'feature_importance.csv'
+METRICS_JSON = 'model_metrics.json'
