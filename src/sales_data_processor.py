@@ -13,15 +13,11 @@ class SalesDataProcessor:
         logger.info("SalesDataProcessor initialized")
     
     def generate_sample_data(self, n_records=None):
-        """
-        Generate sample sales data for demonstration
-        If n_records is None, generates data for all date combinations
-        """
-        logger.info(f"Generating sample sales records")
+        """Generate sample sales data"""
+        logger.info("Generating sample sales records")
         
         np.random.seed(42)
         
-        # Date range
         dates = pd.date_range(
             start=DATA_PARAMS['start_date'], 
             end=DATA_PARAMS['end_date'], 
@@ -40,23 +36,16 @@ class SalesDataProcessor:
                     if n_records and record_count >= n_records:
                         break
                     
-                    # Base sales with seasonality
                     base_sales = np.random.randint(
                         DATA_PARAMS['base_quantity_min'], 
                         DATA_PARAMS['base_quantity_max']
                     )
                     
-                    # Add seasonality (higher in hot months)
                     month = date.month
                     seasonal_factor = 1.0 + (0.3 if month in [1, 2, 12] else 0)
-                    
-                    # Add day of week effect
                     dow_factor = 1.2 if date.dayofweek in [5, 6] else 1.0
-                    
-                    # Calculate final quantity
                     quantity = int(base_sales * seasonal_factor * dow_factor)
                     
-                    # Calculate revenue
                     unit_price = np.random.uniform(
                         DATA_PARAMS['unit_price_min'], 
                         DATA_PARAMS['unit_price_max']
@@ -95,7 +84,7 @@ class SalesDataProcessor:
         df = df.drop_duplicates()
         logger.info(f"Removed {initial_count - len(df)} duplicates")
         
-        # Handle missing values
+        # Handle missing values - FIXED: removed inplace=True
         df['quantity_sold'] = df['quantity_sold'].fillna(df['quantity_sold'].median())
         df['revenue'] = df['revenue'].fillna(df['revenue'].median())
         df['unit_price'] = df['unit_price'].fillna(df['unit_price'].median())
@@ -107,7 +96,7 @@ class SalesDataProcessor:
             IQR = Q3 - Q1
             lower_bound = Q1 - 1.5 * IQR
             upper_bound = Q3 + 1.5 * IQR
-            df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
+            df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)].copy()
         
         # Feature engineering
         df['year'] = df['date'].dt.year
@@ -121,7 +110,7 @@ class SalesDataProcessor:
         return df
     
     def aggregate_daily_sales(self, df):
-        """Aggregate sales by day for time series forecasting"""
+        """Aggregate sales by day"""
         daily_sales = df.groupby('date').agg({
             'quantity_sold': 'sum',
             'revenue': 'sum'
@@ -129,8 +118,3 @@ class SalesDataProcessor:
         
         daily_sales.columns = ['ds', 'quantity', 'y']
         return daily_sales
-    
-    def save_processed_data(self, df, filename='processed_sales_data.csv'):
-        """Save processed data to CSV"""
-        save_dataframe(df, filename)
-        return filename
