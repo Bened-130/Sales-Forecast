@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
-from config import logger, RANDOM_FOREST_PARAMS, GRADIENT_BOOSTING_PARAMS, LAG_PERIODS, ROLLING_WINDOWS
+from config import logger, RANDOM_FOREST_PARAMS, LAG_PERIODS, ROLLING_WINDOWS
 from utils import save_dataframe, calculate_metrics
 
 class MLForecaster:
@@ -21,7 +21,6 @@ class MLForecaster:
         """Create features for ML model"""
         df = df.copy()
         
-        # Ensure date is datetime
         df['date'] = pd.to_datetime(df['date'])
         
         # Time-based features
@@ -42,8 +41,7 @@ class MLForecaster:
             df[f'rolling_mean_{window}'] = df['revenue'].rolling(window=window).mean()
             df[f'rolling_std_{window}'] = df['revenue'].rolling(window=window).std()
         
-        # Drop NaN values created by lag and rolling
-        df = df.dropna()
+        df = df.dropna().copy()
         
         return df
     
@@ -55,7 +53,6 @@ class MLForecaster:
         X = df[feature_cols]
         y = df[target_col]
         
-        # Time-based split (no shuffling for time series)
         split_idx = int(len(df) * (1 - test_size))
         X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
         y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
@@ -66,21 +63,15 @@ class MLForecaster:
         """Train ML model"""
         logger.info(f"Training {self.model_type} model")
         
-        # Scale features
         X_train_scaled = self.scaler.fit_transform(X_train)
         
-        # Initialize model
         if self.model_type == 'random_forest':
             self.model = RandomForestRegressor(**RANDOM_FOREST_PARAMS)
-        elif self.model_type == 'gradient_boosting':
-            self.model = GradientBoostingRegressor(**GRADIENT_BOOSTING_PARAMS)
         else:
             raise ValueError(f"Unknown model type: {self.model_type}")
         
-        # Train model
         self.model.fit(X_train_scaled, y_train)
         
-        # Cross-validation
         cv_scores = cross_val_score(
             self.model, X_train_scaled, y_train, 
             cv=5, scoring='neg_mean_absolute_error'
@@ -99,8 +90,7 @@ class MLForecaster:
         logger.info("Evaluating ML model")
         
         predictions = self.predict(X_test)
-        
-        self.metrics = calculate_metrics(y_test, predictions)
+        self.metrics = calculate_metrics(y_test.values, predictions)
         
         logger.info(f"Model Accuracy: {self.metrics['accuracy']}%")
         return self.metrics
@@ -120,19 +110,10 @@ class MLForecaster:
             return importance_df
         return None
     
-    def save_feature_importance(self, filepath):
+    def save_feature_importance(self, filename):
         """Save feature importance to CSV"""
         importance_df = self.feature_importance()
         if importance_df is not None:
-            save_dataframe(importance_df, filepath)
-            return filepath
-        return None
-    
-    def get_model_summary(self):
-        """Get model summary statistics"""
-        summary = {
-            'model_type': self.model_type,
-            'n_features': len(self.feature_names) if self.feature_names else 0,
-            'metrics': self.metrics
-        }
-        return summary
+            save_dataframe(importance_df, filename)
+            return True
+        return False
